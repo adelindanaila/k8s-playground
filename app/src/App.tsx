@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useCounter, useIncrementCounter, useResetCounter } from './hooks/useCounter'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { data: counter, isLoading, error } = useCounter();
+  const incrementMutation = useIncrementCounter();
+  const resetMutation = useResetCounter();
+
+  const handleIncrement = () => {
+    incrementMutation.mutate();
+  };
+
+  const handleReset = () => {
+    resetMutation.mutate();
+  };
 
   return (
     <>
@@ -18,9 +28,25 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+        {isLoading && <p>Loading counter...</p>}
+        {error && <p style={{ color: 'red' }}>Error: {error.message}</p>}
+        {counter && (
+          <>
+            <button 
+              onClick={handleIncrement}
+              disabled={incrementMutation.isPending}
+            >
+              count is {counter.value}
+            </button>
+            <button 
+              onClick={handleReset}
+              disabled={resetMutation.isPending}
+              style={{ marginLeft: '10px' }}
+            >
+              Reset
+            </button>
+          </>
+        )}
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>

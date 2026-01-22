@@ -11,10 +11,11 @@ Practice deploying a full-stack application (Vite React frontend + Hono backend 
 ```
 
 This script will:
-- Build the Docker image using minikube's Docker daemon
-- Install or upgrade the Helm chart
-- Wait for pods to be ready
-- Show you how to access the app
+- Deploy PostgreSQL (only if not already running)
+- Build and deploy the backend with latest changes
+- Build and deploy the frontend with latest changes
+- Wait for all pods to be ready
+- Show you how to access all services
 
 ### Manual Deployment
 
@@ -54,7 +55,7 @@ helm upgrade vite-app ./helm/vite-app
 ### Deploy PostgreSQL
 
 ```bash
-./deploy-postgres.sh
+./scripts/deploy-postgres.sh
 ```
 
 This script will:
@@ -108,7 +109,7 @@ helm uninstall postgresql
 **Prerequisites:** PostgreSQL must be deployed first.
 
 ```bash
-./deploy-backend.sh
+./scripts/deploy-backend.sh
 ```
 
 This script will:
@@ -226,6 +227,9 @@ k8s-playground/
 │   └── Dockerfile          # Backend Dockerfile
 ├── nginx.conf
 ├── deploy.sh               # Frontend deployment script
-├── deploy-backend.sh        # Backend deployment script
-└── deploy-postgres.sh       # PostgreSQL deployment script
+├── deploy.sh                 # Main deployment script (deploys everything)
+└── scripts/
+    ├── deploy-backend.sh     # Backend deployment script
+    ├── deploy-frontend.sh    # Frontend deployment script
+    └── deploy-postgres.sh    # PostgreSQL deployment script
 ```

@@ -1,6 +1,9 @@
 import { Pool, PoolConfig } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import * as schema from './db/schema.js';
 
 let pool: Pool | null = null;
+let dbInstance: ReturnType<typeof drizzle> | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
@@ -26,6 +29,14 @@ export function getPool(): Pool {
   }
 
   return pool;
+}
+
+export function getDb() {
+  if (!dbInstance) {
+    const pool = getPool();
+    dbInstance = drizzle({ client: pool, schema });
+  }
+  return dbInstance;
 }
 
 export async function testConnection(): Promise<boolean> {

@@ -20,6 +20,8 @@ app.route('/', routes);
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Start server
+// Note: Database migrations are handled by the init container in Kubernetes
+// For local development, run migrations manually with: pnpm db:push
 console.log(`Server starting on port ${PORT}...`);
 
 const server = serve({

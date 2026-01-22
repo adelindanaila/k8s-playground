@@ -12,7 +12,7 @@ fi
 
 # Check if PostgreSQL is deployed (needed for backend)
 if ! helm list -q | grep -q "^postgresql$"; then
-    echo "⚠️  PostgreSQL is not deployed. Deploy it first with: ./deploy-postgres.sh"
+    echo "⚠️  PostgreSQL is not deployed. Deploy it first with: ./scripts/deploy-postgres.sh"
     echo "   Continuing anyway, but backend will fail until PostgreSQL is available..."
 fi
 
@@ -23,6 +23,21 @@ eval $(minikube docker-env)
 # Build the Docker image
 echo "🔨 Building Docker image..."
 docker build -f backend/Dockerfile -t backend:latest .
+
+# Generate OpenAPI spec for frontend (if backend is accessible)
+echo "📝 Generating OpenAPI spec..."
+if command -v curl &> /dev/null; then
+    # Try to get OpenAPI spec from running backend or generate a placeholder
+    BACKEND_URL=$(minikube service backend --url 2>/dev/null | head -1) || BACKEND_URL="http://localhost:3000"
+    if curl -s -f "${BACKEND_URL}/openapi" > openapi.json 2>/dev/null; then
+        echo "✅ OpenAPI spec generated from running backend"
+    else
+        echo "⚠️  Backend not accessible, skipping OpenAPI spec generation"
+        echo "   Frontend build will use existing types or generate from localhost:3000"
+    fi
+else
+    echo "⚠️  curl not found, skipping OpenAPI spec generation"
+fi
 
 # Check if Helm release exists
 if helm list -q | grep -q "^backend$"; then
