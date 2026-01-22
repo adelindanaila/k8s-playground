@@ -1,0 +1,34 @@
+# PostgreSQL configuration optimized for minikube/local development
+
+# Authentication
+auth:
+  postgresPassword: postgres  # Simple password for local dev
+  username: appuser           # Optional: create a custom user
+  password: apppass           # Optional: custom user password
+  database: appdb             # Optional: create a custom database
+
+# Architecture: standalone (single instance, simpler for learning)
+architecture: standalone
+
+# Primary database configuration
+primary:
+  # Resource limits for minikube (nano = minimal resources)
+  resourcesPreset: nano
+  
+  # Persistence
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""  # Use default storage class
+  
+  # Service configuration
+  service:
+    type: ClusterIP  # Internal access only
+
+# Disable metrics (optional, reduces resource usage)
+metrics:
+  enabled: false
+
+# Disable backup cronjob (optional for local dev)
+backup:
+  enabled: false

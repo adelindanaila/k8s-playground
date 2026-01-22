@@ -49,6 +49,58 @@ docker build -t vite-app:latest .
 helm upgrade vite-app ./helm/vite-app
 ```
 
+## PostgreSQL
+
+### Deploy PostgreSQL
+
+```bash
+./deploy-postgres.sh
+```
+
+This script will:
+- Add Bitnami Helm repository
+- Install PostgreSQL with minikube-optimized settings
+- Show connection information and credentials
+
+### Access PostgreSQL
+
+**From within the cluster:**
+- Host: `postgresql`
+- Port: `5432`
+- Username: `postgres`
+- Password: (shown after deployment, or get it with command below)
+- Database: `postgres`
+
+**From local machine:**
+```bash
+# Port forward
+kubectl port-forward svc/postgresql 5432:5432
+
+# Then connect to localhost:5432
+```
+
+**Connect via psql:**
+```bash
+kubectl run -it --rm psql --image=postgres:alpine --restart=Never -- \
+  psql -h postgresql -U postgres -d postgres
+```
+
+### Useful PostgreSQL Commands
+
+```bash
+# Get password
+kubectl get secret postgresql -o jsonpath="{.data.postgres-password}" | base64 -d
+
+# View logs
+kubectl logs -l app.kubernetes.io/name=postgresql
+
+# Check status
+kubectl get pods -l app.kubernetes.io/name=postgresql
+
+# Uninstall
+helm uninstall postgresql
+```
+
 ## Useful Commands
 
 ```bash
@@ -68,14 +120,17 @@ helm uninstall vite-app
 ```
 k8s-playground/
 ├── app/                    # Vite React app
-├── helm/vite-app/          # Helm chart
-│   ├── Chart.yaml
-│   ├── values.yaml
-│   └── templates/
-│       ├── deployment.yaml
-│       ├── service.yaml
-│       └── configmap.yaml
+├── helm/
+│   ├── vite-app/           # Vite app Helm chart
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   │       ├── deployment.yaml
+│   │       ├── service.yaml
+│   │       └── configmap.yaml
+│   └── postgresql-values.yaml  # PostgreSQL configuration
 ├── Dockerfile
 ├── nginx.conf
-└── deploy.sh               # Deployment script
+├── deploy.sh               # Vite app deployment script
+└── deploy-postgres.sh      # PostgreSQL deployment script
 ```
