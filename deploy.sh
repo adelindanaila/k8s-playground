@@ -63,21 +63,6 @@ echo "🔧 Deploying Hono backend..."
 echo "🔨 Building backend Docker image..."
 docker build -f backend/Dockerfile -t backend:latest .
 
-# Generate OpenAPI spec for frontend (if backend is accessible)
-echo "📝 Generating OpenAPI spec..."
-if command -v curl &> /dev/null; then
-    # Try to get OpenAPI spec from running backend or generate a placeholder
-    BACKEND_URL=$(minikube service backend --url 2>/dev/null | head -1) || BACKEND_URL="http://localhost:3000"
-    if curl -s -f "${BACKEND_URL}/openapi" > openapi.json 2>/dev/null; then
-        echo "✅ OpenAPI spec generated from running backend"
-    else
-        echo "⚠️  Backend not accessible, skipping OpenAPI spec generation"
-        echo "   Frontend build will use existing types or generate from localhost:3000"
-    fi
-else
-    echo "⚠️  curl not found, skipping OpenAPI spec generation"
-fi
-
 # Deploy backend with Helm
 if helm list -q | grep -q "^backend$"; then
     echo "🔄 Upgrading existing backend Helm release..."
@@ -101,6 +86,75 @@ echo "⏳ Waiting for backend pods to be ready..."
 kubectl wait --for=condition=ready pod -l app=backend --timeout=120s || true
 
 echo "✅ Backend deployed!"
+
+# Fetch OpenAPI spec from backend for frontend type generation
+echo "📝 Fetching OpenAPI spec from backend..."
+if command -v curl &> /dev/null && command -v kubectl &> /dev/null; then
+    echo "⏳ Waiting for backend to be accessible..."
+    
+    # Use kubectl port-forward to access backend via localhost (more reliable)
+    # Use a random port to avoid conflicts
+    PORT_FORWARD_PORT=30001
+    # Start port-forward in background
+    kubectl port-forward svc/backend ${PORT_FORWARD_PORT}:3000 > /dev/null 2>&1 &
+    PORT_FORWARD_PID=$!
+    
+    # Wait for port-forward to establish (check if process is still running)
+    sleep 3
+    if ! kill -0 $PORT_FORWARD_PID 2>/dev/null; then
+        echo "⚠️  Port-forward failed to start, trying alternative method..."
+        kill $PORT_FORWARD_PID 2>/dev/null || true
+        # Fallback: try minikube service with timeout
+        BACKEND_URL=$(timeout 10 minikube service backend --url 2>/dev/null | head -1 || echo "")
+        if [ -n "$BACKEND_URL" ]; then
+            if curl -s -f "${BACKEND_URL}/openapi" > openapi.json 2>/dev/null; then
+                echo "✅ OpenAPI spec fetched successfully via minikube service"
+                PORT_FORWARD_PID=""
+            fi
+        fi
+    fi
+    
+    # Wait up to 60 seconds for backend to respond
+    MAX_ATTEMPTS=30
+    ATTEMPT=0
+    SUCCESS=false
+    
+    if [ -n "$PORT_FORWARD_PID" ] && kill -0 $PORT_FORWARD_PID 2>/dev/null; then
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            if curl -s -f "http://localhost:${PORT_FORWARD_PORT}/health" > /dev/null 2>&1; then
+                echo "✅ Backend is accessible, fetching OpenAPI spec..."
+                if curl -s -f "http://localhost:${PORT_FORWARD_PORT}/openapi" > openapi.json 2>/dev/null; then
+                    echo "✅ OpenAPI spec fetched successfully"
+                    SUCCESS=true
+                    break
+                else
+                    echo "⚠️  Backend accessible but OpenAPI endpoint not available"
+                    break
+                fi
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                sleep 2
+            fi
+        done
+        
+        # Clean up port-forward
+        kill $PORT_FORWARD_PID 2>/dev/null || true
+        wait $PORT_FORWARD_PID 2>/dev/null || true
+    fi
+    
+    if [ "$SUCCESS" = false ]; then
+        echo "⚠️  Backend not accessible after waiting, skipping OpenAPI spec fetch"
+        echo "   Frontend build will generate types from existing openapi.json or localhost:3000"
+    fi
+    
+    if [ ! -f "openapi.json" ]; then
+        echo "   Frontend build will generate types from existing openapi.json or localhost:3000"
+    fi
+else
+    echo "⚠️  Required tools not found, skipping OpenAPI spec fetch"
+    echo "   Frontend build will generate types from existing openapi.json or localhost:3000"
+fi
 
 # ============================================================================
 # 3. Deploy Frontend

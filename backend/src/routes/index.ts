@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
+import { swaggerUI } from '@hono/swagger-ui';
 import health from './health.js';
 import api from './api.js';
 import counter from './counter.js';
@@ -16,6 +17,7 @@ routes.get('/', (c) => {
       dbTest: '/api/db/test',
       counter: '/api/counter',
       openapi: '/openapi',
+      swaggerUI: '/ui',
     },
   });
 });
@@ -39,6 +41,9 @@ routes.get(
     },
   })
 );
+
+// Swagger UI endpoint
+routes.get('/ui', swaggerUI({ url: '/openapi' }));
 
 // Mount route handlers
 routes.route('/health', health);
