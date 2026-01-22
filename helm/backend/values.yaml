@@ -1,0 +1,27 @@
+replicaCount: 2
+
+image:
+  repository: backend
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 3000
+
+# PostgreSQL connection settings
+postgresql:
+  host: postgresql  # Kubernetes service name
+  port: 5432
+  database: postgres
+  user: postgres
+  # Password will be read from Kubernetes secret
+  secretName: postgresql
+  secretKey: postgres-password
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

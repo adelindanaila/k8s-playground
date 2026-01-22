@@ -16,7 +16,7 @@ eval $(minikube docker-env)
 
 # Build the Docker image
 echo "🔨 Building Docker image..."
-docker build -t vite-app:latest .
+docker build -f app/Dockerfile -t vite-app:latest .
 
 # Check if Helm release exists
 if helm list -q | grep -q "^vite-app$"; then
